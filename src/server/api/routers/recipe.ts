@@ -74,6 +74,43 @@ export const recipeRouter = createTRPCRouter({
 
   }),
 
+  getAllRecipeFavoritedByUser: publicProcedure
+    .input(z.object({ userID: z.number() }))
+    .query(async ({ ctx, input }) => {
+      return await ctx.db.recipe.findMany({
+        where: {
+          favoritedBy: {
+            some: {
+              id: input.userID,
+            },
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          prepTime: true,
+          cuisineType: true,
+          recipeIngredients: {
+            select: {
+              ingredient: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+              id: true,
+              quantity: true,
+              unit: true,
+            },
+          },
+        },
+        orderBy: {
+          id: "desc",
+        },
+      });
+    }),
+
   delete: publicProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {

@@ -13,7 +13,7 @@ export default async function MyRecipes() {
           <UserID />
 
           {/* Table for SQL */}
-          <MyRecipeList />
+          <MyRecipeList mylist={true} />
 
         </div>
       </main>

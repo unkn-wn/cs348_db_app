@@ -262,8 +262,8 @@ export function CreateRecipe() {
 }
 
 
-export function MyRecipeList() {
-  const { data: recipes, isLoading } = api.recipe.getAll.useQuery();
+export function MyRecipeList({ mylist = false }: { mylist?: boolean }) {
+  const utils = api.useUtils();
 
   const [userID, setUserID] = useState<number | null>(null);
   const [favoriteRecipeIds, setFavoriteRecipeIds] = useState<number[]>([]);
@@ -276,12 +276,17 @@ export function MyRecipeList() {
     }
   }, [getUserID.data]);
 
+  // if mylist, get only favorites for the user
+  const { data: recipes, isLoading } = mylist
+    ? api.recipe.getAllRecipeFavoritedByUser.useQuery({ userID: userID || 0 }, { enabled: !!userID })
+    : api.recipe.getAll.useQuery();
+
+
   // get favorite recipes
   const { data: favoriteRecipeData } = api.recipe.getAllFavorites.useQuery(
     { userID: userID || 0 },
     { enabled: !!userID }
   );
-
   useEffect(() => {
     if (favoriteRecipeData) {
       setFavoriteRecipeIds(favoriteRecipeData);
@@ -289,16 +294,26 @@ export function MyRecipeList() {
   }, [favoriteRecipeData]);
 
 
-
+  // favorite/unfavorite
   const favoriteRecipe = api.recipe.favoriteRecipe.useMutation({
     onSuccess: ({ id: recipeID }) => {
       setFavoriteRecipeIds((prev) => [...prev, recipeID]);
+
+      // also refetch favorited recipes
+      utils.recipe.getAllRecipeFavoritedByUser.invalidate();
+      utils.recipe.getAll.invalidate();
+      utils.recipe.getAllFavorites.invalidate();
     },
   });
 
   const unfavoriteRecipe = api.recipe.unfavoriteRecipe.useMutation({
     onSuccess: ({ id: recipeID }) => {
       setFavoriteRecipeIds((prev) => prev.filter((id) => id !== recipeID));
+
+      // also refetch favorited recipes
+      utils.recipe.getAllRecipeFavoritedByUser.invalidate();
+      utils.recipe.getAll.invalidate();
+      utils.recipe.getAllFavorites.invalidate();
     },
   });
 
