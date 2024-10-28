@@ -2,49 +2,57 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-    provider = "postgresql"
-    url      = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Ingredient {
-  id         Int        @id @default(autoincrement())
-  name       String
-  quantity   Float
-  unit       String
-  recipeId   Int
-
-  recipe     Recipe     @relation(fields: [recipeId], references: [id]) // One to many: each recipe can have multiple ingredients
-}
-
-model User {
-  id        Int         @id @default(autoincrement())
-  username  String      @unique
-  password  String      // no encryption yet
-  ratings   Rating[]                            // One to many: a user can rate multiple recipes
-  favorites Recipe[]    @relation("Favorites")  // Many to many: users can favorite multiple recipes, and recipes can be favorited by multiple users
+  id      Int                @id @default(autoincrement())
+  name    String             @unique // Ingredient names should be unique
+  recipes RecipeIngredient[] // Many-to-many relationship with Recipe
 }
 
 model Recipe {
-  id            Int     @id @default(autoincrement())
-  name          String
-  description   String?
-  prepTime      Int
-  cuisineType   String?
-  ingredients   Ingredient[]                    // One to many: each recipe is composed of several ingredients
-  ratings       Rating[]                        // One to many: each recipe can receive multiple ratings
-  favoritedBy   User[]  @relation("Favorites")  // Many to many: recipes can be favorited by many users
+  id                Int                @id @default(autoincrement())
+  name              String
+  description       String?
+  prepTime          Int
+  cuisineType       String?
+  recipeIngredients RecipeIngredient[] // Many-to-many relationship with Ingredient
+  ratings           Rating[] // One to many: each recipe can receive multiple ratings
+  favoritedBy       User[]             @relation("Favorites") // Many-to-many with User (favorites)
+}
+
+model RecipeIngredient {
+  id           Int        @id @default(autoincrement())
+  recipe       Recipe     @relation(fields: [recipeId], references: [id])
+  recipeId     Int
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
+  ingredientId Int
+  quantity     Float
+  unit         String
+
+  @@unique([recipeId, ingredientId]) // Ensures each ingredient can appear only once per recipe
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String // no encryption yet
+  ratings   Rating[] // One to many: a user can rate multiple recipes
+  favorites Recipe[] @relation("Favorites") // Many-to-many with Recipe (favorites)
 }
 
 model Rating {
-  id       Int          @id @default(autoincrement())
-  score    Int          // rating out of 5
+  id       Int @id @default(autoincrement())
+  score    Int // rating out of 5
   userId   Int
   recipeId Int
 
-  user     User         @relation(fields: [userId], references: [id])   // One to many: a rating is associated with one user
-  recipe   Recipe       @relation(fields: [recipeId], references: [id]) // One to many: a rating is associated with one recipe
+  user   User   @relation(fields: [userId], references: [id]) // One-to-many with User
+  recipe Recipe @relation(fields: [recipeId], references: [id]) // One-to-many with Recipe
 }

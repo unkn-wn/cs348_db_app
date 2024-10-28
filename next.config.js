@@ -5,6 +5,10 @@
 await import("./src/env.js");
 
 /** @type {import("next").NextConfig} */
-const config = {};
+const config = {
+  experimental: {
+    optimizePackageImports: ["@chakra-ui/react"],
+  },
+};
 
 export default config;
