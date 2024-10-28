@@ -110,4 +110,45 @@ export const recipeRouter = createTRPCRouter({
       console.log("error: ", e);
     }
   }),
+
+
+
+  favoriteRecipe: publicProcedure
+    .input(z.object({ recipeID: z.number(), userID: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      return ctx.db.recipe.update({
+        where: { id: input.recipeID },
+        data: {
+          favoritedBy: {
+            connect: { id: input.userID },
+          },
+        },
+      });
+    }),
+
+  getAllFavorites: publicProcedure
+    .input(z.object({ userID: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const user = await ctx.db.user.findUnique({
+        where: { id: input.userID },
+        select: {
+          favorites: { select: { id: true } },
+        },
+      });
+
+      return user?.favorites.map((recipe) => recipe.id) || [];
+    }),
+
+  unfavoriteRecipe: publicProcedure
+    .input(z.object({ recipeID: z.number(), userID: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      return ctx.db.recipe.update({
+        where: { id: input.recipeID },
+        data: {
+          favoritedBy: {
+            disconnect: { id: input.userID },
+          },
+        },
+      });
+    }),
 });

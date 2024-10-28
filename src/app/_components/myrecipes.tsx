@@ -265,6 +265,45 @@ export function CreateRecipe() {
 export function MyRecipeList() {
   const { data: recipes, isLoading } = api.recipe.getAll.useQuery();
 
+  const [userID, setUserID] = useState<number | null>(null);
+  const [favoriteRecipeIds, setFavoriteRecipeIds] = useState<number[]>([]);
+
+  // get user id
+  const getUserID = api.account.getUserID.useQuery();
+  useEffect(() => {
+    if (getUserID.data?.data) {
+      setUserID(getUserID.data.data);
+    }
+  }, [getUserID.data]);
+
+  // get favorite recipes
+  const { data: favoriteRecipeData } = api.recipe.getAllFavorites.useQuery(
+    { userID: userID || 0 },
+    { enabled: !!userID }
+  );
+
+  useEffect(() => {
+    if (favoriteRecipeData) {
+      setFavoriteRecipeIds(favoriteRecipeData);
+    }
+  }, [favoriteRecipeData]);
+
+
+
+  const favoriteRecipe = api.recipe.favoriteRecipe.useMutation({
+    onSuccess: ({ id: recipeID }) => {
+      setFavoriteRecipeIds((prev) => [...prev, recipeID]);
+    },
+  });
+
+  const unfavoriteRecipe = api.recipe.unfavoriteRecipe.useMutation({
+    onSuccess: ({ id: recipeID }) => {
+      setFavoriteRecipeIds((prev) => prev.filter((id) => id !== recipeID));
+    },
+  });
+
+  const isFavorite = (recipeID: number) => favoriteRecipeIds.includes(recipeID);
+
   if (isLoading) return <div>Fetching all entries...</div>;
 
   return (
@@ -287,7 +326,20 @@ export function MyRecipeList() {
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle className="text-3xl font-bold text-center">{recipe.name}</DialogTitle>
+                      <div className="w-full flex flex-col">
+                        <DialogTitle className="text-3xl font-bold text-center">{recipe.name}</DialogTitle>
+                        {userID && (
+                          <div className="w-1/4 self-center">
+                            {isFavorite(recipe.id) ? (
+                              <button className="w-full border border-gray-800 px-2 hover:bg-gray-800 hover:text-white rounded transition"
+                                onClick={() => unfavoriteRecipe.mutate({ recipeID: recipe.id, userID: userID })}>Unfavorite</button>
+                            ) : (
+                              <button className="w-full border border-gray-800 px-2 hover:bg-gray-800 hover:text-white rounded transition"
+                                onClick={() => favoriteRecipe.mutate({ recipeID: recipe.id, userID: userID })}>Favorite</button>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </DialogHeader>
                     <DialogBody>
                       <div className="flex flex-col">
