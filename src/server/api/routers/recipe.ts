@@ -74,6 +74,7 @@ export const recipeRouter = createTRPCRouter({
 
   }),
 
+  // same as getAll recipes, but selects favoritedby user
   getAllRecipeFavoritedByUser: publicProcedure
     .input(z.object({ userID: z.number() }))
     .query(async ({ ctx, input }) => {
@@ -163,6 +164,7 @@ export const recipeRouter = createTRPCRouter({
       });
     }),
 
+  // gets the favorite using the user table, select favorites ids
   getAllFavorites: publicProcedure
     .input(z.object({ userID: z.number() }))
     .query(async ({ ctx, input }) => {
