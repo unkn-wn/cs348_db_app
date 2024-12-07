@@ -10,6 +10,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Ingredient(id (PK), name)
+// Recipe(id (PK), name, description, prepTime, cuisineType)
+// RecipeIngredient(id (PK), recipeId (FK -> Recipe.id), ingredientId (FK -> Ingredient.id), quantity, unit)
+// User(id (PK), username, password)
+// Rating(id (PK), score, userId (FK -> User.id), recipeId (FK -> Recipe.id))
+
 model Ingredient {
   id      Int                @id @default(autoincrement())
   name    String             @unique // Ingredient names should be unique
