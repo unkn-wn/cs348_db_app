@@ -61,4 +61,6 @@ model Rating {
 
   user   User   @relation(fields: [userId], references: [id]) // One-to-many with User
   recipe Recipe @relation(fields: [recipeId], references: [id]) // One-to-many with Recipe
+
+  @@unique([userId, recipeId])
 }

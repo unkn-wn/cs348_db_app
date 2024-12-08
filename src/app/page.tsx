@@ -1,5 +1,6 @@
 import { api, HydrateClient } from "~/trpc/server";
-import { CreateRecipe, MyRecipeList } from "~/app/_components/myrecipes";
+import { MyRecipeList } from "~/app/_components/myrecipes";
+import { CreateRecipe } from "~/app/_components/createrecipe";
 
 export default async function Home() {
 

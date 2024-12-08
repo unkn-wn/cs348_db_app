@@ -116,18 +116,37 @@ export const recipeRouter = createTRPCRouter({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
       try {
-        const recipe = await ctx.db.recipe.delete({
-          where: { id: input.id },
-        });
-        console.log("Recipe deleted:", recipe);
-        return recipe;
+        await ctx.db.$transaction([
+          // delete recipeingredient connection, ratings, and favorites
+          ctx.db.recipeIngredient.deleteMany({
+            where: { recipeId: input.id },
+          }),
+
+          ctx.db.rating.deleteMany({
+            where: { recipeId: input.id },
+          }),
+
+          ctx.db.recipe.update({
+            where: { id: input.id },
+            data: {
+              favoritedBy: {
+                set: [],
+              },
+            },
+          }),
+
+          // delete self
+          ctx.db.recipe.delete({
+            where: { id: input.id },
+          }),
+        ]);
+
+        return { success: true, id: input.id };
       } catch (e) {
         console.error("Error deleting recipe:", e);
         throw new Error("Failed to delete recipe");
       }
     }),
-
-
 
   createIngredient: publicProcedure
     .input(z.object({
@@ -186,6 +205,47 @@ export const recipeRouter = createTRPCRouter({
         data: {
           favoritedBy: {
             disconnect: { id: input.userID },
+          },
+        },
+      });
+    }),
+
+  addRating: publicProcedure
+    .input(z.object({
+      recipeId: z.number(),
+      userId: z.number(),
+      score: z.number().min(1).max(5)
+    }))
+    .mutation(async ({ ctx, input }) => {
+      return ctx.db.rating.upsert({
+        where: {
+          userId_recipeId: {
+            userId: input.userId,
+            recipeId: input.recipeId,
+          },
+        },
+        update: {
+          score: input.score,
+        },
+        create: {
+          userId: input.userId,
+          recipeId: input.recipeId,
+          score: input.score,
+        },
+      });
+    }),
+
+  getRecipeRating: publicProcedure
+    .input(z.object({
+      recipeId: z.number(),
+      userId: z.number(),
+    }))
+    .query(async ({ ctx, input }) => {
+      return ctx.db.rating.findUnique({
+        where: {
+          userId_recipeId: {
+            userId: input.userId,
+            recipeId: input.recipeId,
           },
         },
       });
