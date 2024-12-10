@@ -17,6 +17,7 @@ import {
 
 import { Table } from "@chakra-ui/react"
 import { RatingComponent } from "./ratingcomponent";
+import { RecipeForm } from "./recipeform";
 
 
 export function MyRecipeList({ mylist = false }: { mylist?: boolean }) {
@@ -81,6 +82,13 @@ export function MyRecipeList({ mylist = false }: { mylist?: boolean }) {
       utils.recipe.getAllRecipeFavoritedByUser.invalidate();
       utils.recipe.getAll.invalidate();
       utils.recipe.getAllFavorites.invalidate();
+    },
+  });
+
+  const updateRecipe = api.recipe.updateRecipe.useMutation({
+    onSuccess: () => {
+      utils.recipe.getAllRecipeFavoritedByUser.invalidate();
+      utils.recipe.getAll.invalidate();
     },
   });
 
@@ -154,8 +162,25 @@ export function MyRecipeList({ mylist = false }: { mylist?: boolean }) {
                             </div>
                           )}
 
-                          {/* DELETE RECIPE */}
-                          <div className="mt-4 flex justify-center">
+                          {/* DELETE AND EDIT RECIPE */}
+                          <div className="mt-4 flex justify-center gap-4">
+                            <DialogRoot size={"lg"}>
+                              <DialogTrigger asChild>
+                                <button className="px-4 py-2 border border-gray-800 rounded hover:text-white hover:bg-gray-800">
+                                  Edit Recipe
+                                </button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle className="text-3xl font-bold text-center">Edit Recipe</DialogTitle>
+                                </DialogHeader>
+                                <RecipeForm
+                                  isEdit={true}
+                                  initialData={recipe}
+                                  onSubmit={(data) => updateRecipe.mutate(data)}
+                                />
+                              </DialogContent>
+                            </DialogRoot>
                             <button
                               className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
                               onClick={() => {

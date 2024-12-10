@@ -46,6 +46,55 @@ export const recipeRouter = createTRPCRouter({
       });
     }),
 
+  updateRecipe: publicProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        name: z.string(),
+        description: z.string().nullable(),
+        prepTime: z.number(),
+        cuisineType: z.string().nullable(),
+        ingredients: z.array(
+          z.object({
+            ingredientId: z.number(),
+            quantity: z.number(),
+            unit: z.string(),
+          })
+        ),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.db.$transaction(async (tx) => {
+        // replace all existing ingredients connections by deleting first
+        await tx.recipeIngredient.deleteMany({
+          where: { recipeId: input.id },
+        });
+
+        return tx.recipe.update({
+          where: { id: input.id },
+          data: {
+            name: input.name,
+            description: input.description,
+            prepTime: input.prepTime,
+            cuisineType: input.cuisineType,
+            recipeIngredients: {
+              create: input.ingredients.map((ingredient) => ({
+                ingredientId: ingredient.ingredientId,
+                quantity: ingredient.quantity,
+                unit: ingredient.unit,
+              })),
+            }
+          },
+          include: {
+            recipeIngredients: true,
+          },
+        });
+      }, {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        timeout: 5000
+      });
+    }),
+
   getAll: publicProcedure.query(async ({ ctx }) => {
     try {
       return await ctx.db.recipe.findMany({
