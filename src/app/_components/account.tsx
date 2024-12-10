@@ -59,8 +59,11 @@ export function AccountList() {
 
   const deleteAccount = api.account.delete.useMutation({
     onSuccess: async () => {
-      await utils.account.invalidate();
+      if (curUser === selectedAccountId) {
+        setCurUser(null);
+      }
       setSelectedAccountId(null);
+      await utils.account.invalidate();
     },
   });
 
@@ -118,7 +121,9 @@ export function AccountList() {
           <button
             onClick={() => {
               if (selectedAccountId !== null) {
-                deleteAccount.mutate({ id: selectedAccountId });
+                if (window.confirm("Are you sure you want to delete this account?")) {
+                  deleteAccount.mutate({ id: selectedAccountId });
+                }
               }
             }}
             className="mt-2 rounded-full bg-red-500 px-10 py-3 font-semibold text-white transition hover:bg-red-700"

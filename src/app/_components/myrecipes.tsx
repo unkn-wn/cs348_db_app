@@ -97,82 +97,86 @@ export function MyRecipeList({ mylist = false }: { mylist?: boolean }) {
               <Table.ColumnHeader>Recipe Name</Table.ColumnHeader>
               <Table.ColumnHeader>Prep Time (mins)</Table.ColumnHeader>
               <Table.ColumnHeader>Cuisine</Table.ColumnHeader>
+              <Table.ColumnHeader>Avg Rating</Table.ColumnHeader>
             </Table.Row>
           </Table.Header>
           <Table.Body>
-            {recipes && recipes.map((recipe) => (
-              <Table.Row key={recipe.id}>
-                <DialogRoot>
-                  <DialogTrigger asChild className="cursor-pointer underline">
-                    <Table.Cell>{recipe.name}</Table.Cell>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <div className="w-full flex flex-col">
-                        <DialogTitle className="text-3xl font-bold text-center">{recipe.name}</DialogTitle>
-                        {userID && (
-                          <div className="w-1/4 self-center">
-                            {isFavorite(recipe.id) ? (
-                              <button className="w-full border border-gray-800 px-2 hover:bg-gray-800 hover:text-white rounded transition"
-                                onClick={() => unfavoriteRecipe.mutate({ recipeID: recipe.id, userID: userID })}>Unfavorite</button>
-                            ) : (
-                              <button className="w-full border border-gray-800 px-2 hover:bg-gray-800 hover:text-white rounded transition"
-                                onClick={() => favoriteRecipe.mutate({ recipeID: recipe.id, userID: userID })}>Favorite</button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </DialogHeader>
-                    <DialogBody>
-                      <div className="flex flex-col">
-                        <div className="flex flex-row justify-between">
-                          <p className="font-bold">{recipe.prepTime} minutes</p>
-                          <p className="font-bold">{recipe.cuisineType}</p>
-                        </div>
-                        {mylist && userID && (
-                          <div className="w-full flex justify-center">
-                            <RatingComponent recipeId={recipe.id} userId={userID} />
-                          </div>
-                        )}
-                        <p className="mt-2">{recipe.description}</p>
-                        {recipe.recipeIngredients.length > 0 && (
-                          <div className="mt-4">
-                            <h3 className="font-semibold">Ingredients:</h3>
-                            <ul>
-                              {recipe.recipeIngredients.map((ingredient) => (
-                                <li key={ingredient.id}>
-                                  {ingredient.ingredient.name} - {ingredient.quantity} {ingredient.unit}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
+            {recipes && recipes.map((recipe) => {
+              const avgRating = recipe.ratings.length > 0
+                ? (recipe.ratings.reduce((sum, r) => sum + r.score, 0) / recipe.ratings.length).toFixed(1)
+                : '-';
 
-                        {/* DELETE RECIPE */}
-                        <div className="mt-4 flex justify-center">
-                          <button
-                            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-                            onClick={() => {
-                              if (window.confirm('Are you sure you want to delete this recipe?')) {
-                                deleteRecipe.mutate({ id: recipe.id });
-                                const closeButton = document.querySelector('[aria-label="Close"]');
-                                if (closeButton instanceof HTMLElement) {
-                                  closeButton.click();
-                                }
-                              }
-                            }}
-                          >
-                            Delete Recipe
-                          </button>
+              return (
+                <Table.Row key={recipe.id}>
+                  <DialogRoot>
+                    <DialogTrigger asChild className="cursor-pointer underline">
+                      <Table.Cell>{recipe.name}</Table.Cell>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <div className="w-full flex flex-col">
+                          <DialogTitle className="text-3xl font-bold text-center">{recipe.name}</DialogTitle>
+                          {userID && (
+                            <div className="w-1/4 self-center">
+                              {isFavorite(recipe.id) ? (
+                                <button className="w-full border border-gray-800 px-2 hover:bg-gray-800 hover:text-white rounded transition"
+                                  onClick={() => unfavoriteRecipe.mutate({ recipeID: recipe.id, userID: userID })}>Unfavorite</button>
+                              ) : (
+                                <button className="w-full border border-gray-800 px-2 hover:bg-gray-800 hover:text-white rounded transition"
+                                  onClick={() => favoriteRecipe.mutate({ recipeID: recipe.id, userID: userID })}>Favorite</button>
+                              )}
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    </DialogBody>
-                  </DialogContent>
-                </DialogRoot>
-                <Table.Cell>{recipe.prepTime}</Table.Cell>
-                <Table.Cell>{recipe.cuisineType}</Table.Cell>
-              </Table.Row>
-            ))}
+                      </DialogHeader>
+                      <DialogBody>
+                        <div className="flex flex-col">
+                          <div className="flex flex-row justify-between">
+                            <p className="font-bold">{recipe.prepTime} minutes</p>
+                            <p className="font-bold">{recipe.cuisineType}</p>
+                          </div>
+                          {mylist && userID && (
+                            <div className="w-full flex justify-center">
+                              <RatingComponent recipeId={recipe.id} userId={userID} />
+                            </div>
+                          )}
+                          <p className="mt-2">{recipe.description}</p>
+                          {recipe.recipeIngredients.length > 0 && (
+                            <div className="mt-4">
+                              <h3 className="font-semibold">Ingredients:</h3>
+                              <ul>
+                                {recipe.recipeIngredients.map((ingredient) => (
+                                  <li key={ingredient.id}>
+                                    {ingredient.ingredient.name} - {ingredient.quantity} {ingredient.unit}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* DELETE RECIPE */}
+                          <div className="mt-4 flex justify-center">
+                            <button
+                              className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                              onClick={() => {
+                                if (window.confirm('Are you sure you want to delete this recipe?')) {
+                                  deleteRecipe.mutate({ id: recipe.id });
+                                }
+                              }}
+                            >
+                              Delete Recipe
+                            </button>
+                          </div>
+                        </div>
+                      </DialogBody>
+                    </DialogContent>
+                  </DialogRoot>
+                  <Table.Cell>{recipe.prepTime}</Table.Cell>
+                  <Table.Cell>{recipe.cuisineType}</Table.Cell>
+                  <Table.Cell>{avgRating}</Table.Cell>
+                </Table.Row>
+              );
+            })}
           </Table.Body>
         </Table.Root>
 

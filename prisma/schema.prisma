@@ -42,7 +42,7 @@ model RecipeIngredient {
   quantity     Float
   unit         String
 
-  @@unique([recipeId, ingredientId]) // Ensures each ingredient can appear only once per recipe
+  @@unique([recipeId, ingredientId]) // one ingredient per recipe
 }
 
 model User {

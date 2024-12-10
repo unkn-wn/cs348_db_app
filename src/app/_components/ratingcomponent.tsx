@@ -16,6 +16,8 @@ export function RatingComponent({ recipeId, userId }: { recipeId: number; userId
 
   const addRating = api.recipe.addRating.useMutation({
     onSuccess: () => {
+      utils.recipe.getAllRecipeFavoritedByUser.invalidate();
+      utils.recipe.getAll.invalidate();
       utils.recipe.getRecipeRating.invalidate();
     },
   });

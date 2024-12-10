@@ -1,10 +1,8 @@
 import { z } from "zod";
-
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
-
+import { Prisma } from "@prisma/client";
 
 export const recipeRouter = createTRPCRouter({
-
   createRecipe: publicProcedure
     .input(
       z.object({
@@ -21,23 +19,30 @@ export const recipeRouter = createTRPCRouter({
         ),
       })
     ).mutation(async ({ ctx, input }) => {
-      return ctx.db.recipe.create({
-        data: {
-          name: input.name,
-          description: input.description,
-          prepTime: input.prepTime,
-          cuisineType: input.cuisineType,
-          recipeIngredients: {
-            create: input.ingredients.map((ingredient) => ({
-              ingredientId: ingredient.ingredientId,
-              quantity: ingredient.quantity,
-              unit: ingredient.unit,
-            })),
-          }
-        },
-        include: {
-          recipeIngredients: true,
-        },
+      // SERIALIZATION ISOLATION LEVEL - makes sure that no other transactions can
+      // modify or read when in progress
+      return await ctx.db.$transaction(async (tx) => {
+        return tx.recipe.create({
+          data: {
+            name: input.name,
+            description: input.description,
+            prepTime: input.prepTime,
+            cuisineType: input.cuisineType,
+            recipeIngredients: {
+              create: input.ingredients.map((ingredient) => ({
+                ingredientId: ingredient.ingredientId,
+                quantity: ingredient.quantity,
+                unit: ingredient.unit,
+              })),
+            }
+          },
+          include: {
+            recipeIngredients: true,
+          },
+        });
+      }, {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        timeout: 5000
       });
     }),
 
@@ -50,6 +55,11 @@ export const recipeRouter = createTRPCRouter({
           description: true,
           prepTime: true,
           cuisineType: true,
+          ratings: {
+            select: {
+              score: true,
+            },
+          },
           recipeIngredients: {
             select: {
               ingredient: {
@@ -92,6 +102,11 @@ export const recipeRouter = createTRPCRouter({
           description: true,
           prepTime: true,
           cuisineType: true,
+          ratings: {
+            select: {
+              score: true,
+            },
+          },
           recipeIngredients: {
             select: {
               ingredient: {
@@ -116,32 +131,35 @@ export const recipeRouter = createTRPCRouter({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
       try {
-        await ctx.db.$transaction([
-          // delete recipeingredient connection, ratings, and favorites
-          ctx.db.recipeIngredient.deleteMany({
+        // SERIALIZATION ISOLATION LEVEL - makes sure that when deleting multiple things,
+        // no other transactions can modify or read
+        return await ctx.db.$transaction(async (tx) => {
+          await tx.recipeIngredient.deleteMany({
             where: { recipeId: input.id },
-          }),
+          });
 
-          ctx.db.rating.deleteMany({
+          await tx.rating.deleteMany({
             where: { recipeId: input.id },
-          }),
+          });
 
-          ctx.db.recipe.update({
+          await tx.recipe.update({
             where: { id: input.id },
             data: {
               favoritedBy: {
                 set: [],
               },
             },
-          }),
+          });
 
-          // delete self
-          ctx.db.recipe.delete({
+          await tx.recipe.delete({
             where: { id: input.id },
-          }),
-        ]);
+          });
 
-        return { success: true, id: input.id };
+          return { success: true, id: input.id };
+        }, {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          timeout: 5000
+        });
       } catch (e) {
         console.error("Error deleting recipe:", e);
         throw new Error("Failed to delete recipe");
@@ -167,8 +185,6 @@ export const recipeRouter = createTRPCRouter({
       console.log("error: ", e);
     }
   }),
-
-
 
   favoriteRecipe: publicProcedure
     .input(z.object({ recipeID: z.number(), userID: z.number() }))
@@ -217,21 +233,28 @@ export const recipeRouter = createTRPCRouter({
       score: z.number().min(1).max(5)
     }))
     .mutation(async ({ ctx, input }) => {
-      return ctx.db.rating.upsert({
-        where: {
-          userId_recipeId: {
+      // REPEATABLE READ ISOLATION LEVEL - we only need to ensure that the ratings read are consistent,
+      // (not as important as other transactions)
+      return await ctx.db.$transaction(async (tx) => {
+        return tx.rating.upsert({
+          where: {
+            userId_recipeId: {
+              userId: input.userId,
+              recipeId: input.recipeId,
+            },
+          },
+          update: {
+            score: input.score,
+          },
+          create: {
             userId: input.userId,
             recipeId: input.recipeId,
+            score: input.score,
           },
-        },
-        update: {
-          score: input.score,
-        },
-        create: {
-          userId: input.userId,
-          recipeId: input.recipeId,
-          score: input.score,
-        },
+        });
+      }, {
+        isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
+        timeout: 3000
       });
     }),
 
