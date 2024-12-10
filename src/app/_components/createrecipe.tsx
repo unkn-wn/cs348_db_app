@@ -24,6 +24,7 @@ export function CreateRecipe() {
   const [description, setDescription] = useState("");
   const [prepTime, setPrepTime] = useState(0);
   const [cuisineType, setCuisineType] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   // const [userID, setUserID] = useState<number | null>(null);
   // const getUserID = api.account.getUserID.useQuery();
@@ -217,30 +218,45 @@ export function CreateRecipe() {
                     </DialogContent>
                   </DialogRoot>
                 </div>
+
+                {/* Add search bar */}
+                <div className="my-2">
+                  <input
+                    type="text"
+                    placeholder="Search ingredients..."
+                    className="w-full border border-gray-300 rounded-md p-2"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+
                 <div className="flex overflow-x-auto gap-2 m-2">
                   {isLoading ? (
                     <div>Loading ingredients...</div>
                   ) : (
-                    entries?.map((entry) => (
-                      <div key={entry.id} className="flex flex-col gap-1 w-1/3">
-                        <span className="border border-gray-300 rounded">
-                          <CheckboxCard key={entry.id} label={entry.name}
-                            onChange={() => handleCheckboxChange(entry.id)} />
-                        </span>
-                        <input
-                          type="text"
-                          placeholder="Quantity"
-                          className="border border-gray-300 rounded p-1"
-                          onChange={(e) => setQuantity({ ...quantity, [entry.id]: parseInt(e.target.value) })}
-                        />
-                        <input
-                          type="text"
-                          placeholder="Unit"
-                          className="border border-gray-300 rounded p-1"
-                          onChange={(e) => setUnit({ ...unit, [entry.id]: e.target.value })}
-                        />
-                      </div>
-                    ))
+                    entries?.filter(entry =>
+                        entry.name.toLowerCase().includes(searchTerm.toLowerCase())
+                      )
+                      .map((entry) => (
+                        <div key={entry.id} className="flex flex-col gap-1 w-1/3">
+                          <span className="border border-gray-300 rounded">
+                            <CheckboxCard key={entry.id} label={entry.name}
+                              onChange={() => handleCheckboxChange(entry.id)} />
+                          </span>
+                          <input
+                            type="text"
+                            placeholder="Quantity"
+                            className="border border-gray-300 rounded p-1"
+                            onChange={(e) => setQuantity({ ...quantity, [entry.id]: parseInt(e.target.value) })}
+                          />
+                          <input
+                            type="text"
+                            placeholder="Unit"
+                            className="border border-gray-300 rounded p-1"
+                            onChange={(e) => setUnit({ ...unit, [entry.id]: e.target.value })}
+                          />
+                        </div>
+                      ))
                   )}
                 </div>
               </div>
