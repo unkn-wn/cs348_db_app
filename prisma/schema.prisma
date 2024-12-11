@@ -31,6 +31,8 @@ model Recipe {
   recipeIngredients RecipeIngredient[] // Many-to-many relationship with Ingredient
   ratings           Rating[] // One to many: each recipe can receive multiple ratings
   favoritedBy       User[]             @relation("Favorites") // Many-to-many with User (favorites)
+
+  @@index([cuisineType], type: Hash)
 }
 
 model RecipeIngredient {
@@ -63,4 +65,5 @@ model Rating {
   recipe Recipe @relation(fields: [recipeId], references: [id]) // One-to-many with Recipe
 
   @@unique([userId, recipeId])
+  @@index([recipeId, score])
 }
