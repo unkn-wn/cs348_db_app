@@ -15,10 +15,16 @@ export function RatingComponent({ recipeId, userId }: { recipeId: number; userId
   );
 
   const addRating = api.recipe.addRating.useMutation({
-    onSuccess: () => {
-      utils.recipe.getAllRecipeFavoritedByUser.invalidate();
-      utils.recipe.getAll.invalidate();
-      utils.recipe.getRecipeRating.invalidate();
+    onSuccess: async () => {
+      try {
+        await Promise.all([
+          utils.recipe.getAllRecipeFavoritedByUser.invalidate(),
+          utils.recipe.getAll.invalidate(),
+          utils.recipe.getRecipeRating.invalidate(),
+        ]);
+      } catch (error) {
+        console.error('Failed to invalidate queries:', error);
+      }
     },
   });
 
@@ -38,9 +44,8 @@ export function RatingComponent({ recipeId, userId }: { recipeId: number; userId
       {[1, 2, 3, 4, 5].map((star) => (
         <button
           key={star}
-          className={`text-2xl ${
-            star <= (hoveredRating || rating) ? "text-yellow-400" : "text-gray-300"
-          }`}
+          className={`text-2xl ${star <= (hoveredRating || rating) ? "text-yellow-400" : "text-gray-300"
+            }`}
           onMouseEnter={() => setHoveredRating(star)}
           onMouseLeave={() => setHoveredRating(0)}
           onClick={() => handleRatingClick(star)}

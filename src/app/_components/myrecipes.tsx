@@ -5,19 +5,16 @@ import { api } from "~/trpc/react";
 
 import {
   DialogBody,
-  DialogCloseTrigger,
   DialogContent,
-  DialogFooter,
   DialogHeader,
   DialogRoot,
   DialogTitle,
   DialogTrigger,
-  DialogActionTrigger,
 } from "~/components/ui/dialog";
 
 import { Table } from "@chakra-ui/react"
 import { RatingComponent } from "./ratingcomponent";
-import { RecipeForm } from "./recipeform";
+import { RecipeForm, type RecipeFormData } from "./recipeform";
 
 
 export function MyRecipeList({ mylist = false }: { mylist?: boolean }) {
@@ -44,7 +41,7 @@ export function MyRecipeList({ mylist = false }: { mylist?: boolean }) {
 
   // if mylist, get only favorites for the user
   const { data: recipes, isLoading } = mylist
-    ? api.recipe.getAllRecipeFavoritedByUser.useQuery({ userID: userID || 0 }, { enabled: !!userID })
+    ? api.recipe.getAllRecipeFavoritedByUser.useQuery({ userID: userID ?? 0 }, { enabled: !!userID })
     : api.recipe.getAllFiltered.useQuery({
       cuisineType: cuisineFilter,
       minRating: ratingFilter
@@ -52,7 +49,7 @@ export function MyRecipeList({ mylist = false }: { mylist?: boolean }) {
 
   // get favorite recipes
   const { data: favoriteRecipeData } = api.recipe.getAllFavorites.useQuery(
-    { userID: userID || 0 },
+    { userID: userID ?? 0 },
     { enabled: !!userID }
   );
   useEffect(() => {
@@ -64,47 +61,74 @@ export function MyRecipeList({ mylist = false }: { mylist?: boolean }) {
 
   // favorite/unfavorite
   const favoriteRecipe = api.recipe.favoriteRecipe.useMutation({
-    onSuccess: ({ id: recipeID }) => {
+    onSuccess: async ({ id: recipeID }) => {
       setFavoriteRecipeIds((prev) => [...prev, recipeID]);
-
-      // also refetch favorited recipes
-      utils.recipe.getAllRecipeFavoritedByUser.invalidate();
-      utils.recipe.getAll.invalidate();
-      utils.recipe.getAllFiltered.invalidate();
-      utils.recipe.getAllFavorites.invalidate();
+      try {
+        await Promise.all([
+          utils.recipe.getAllRecipeFavoritedByUser.invalidate(),
+          utils.recipe.getAll.invalidate(),
+          utils.recipe.getAllFiltered.invalidate(),
+          utils.recipe.getAllFavorites.invalidate()
+        ]);
+      } catch (error) {
+        console.error('Failed to invalidate queries:', error);
+      }
     },
   });
 
   const unfavoriteRecipe = api.recipe.unfavoriteRecipe.useMutation({
-    onSuccess: ({ id: recipeID }) => {
+    onSuccess: async ({ id: recipeID }) => {
       setFavoriteRecipeIds((prev) => prev.filter((id) => id !== recipeID));
-
-      // also refetch favorited recipes
-      utils.recipe.getAllRecipeFavoritedByUser.invalidate();
-      utils.recipe.getAll.invalidate();
-      utils.recipe.getAllFiltered.invalidate();
-      utils.recipe.getAllFavorites.invalidate();
+      try {
+        await Promise.all([
+          utils.recipe.getAllRecipeFavoritedByUser.invalidate(),
+          utils.recipe.getAll.invalidate(),
+          utils.recipe.getAllFiltered.invalidate(),
+          utils.recipe.getAllFavorites.invalidate()
+        ]);
+      } catch (error) {
+        console.error('Failed to invalidate queries:', error);
+      }
     },
   });
 
   const deleteRecipe = api.recipe.delete.useMutation({
-    onSuccess: () => {
-
-      // refetch again
-      utils.recipe.getAllRecipeFavoritedByUser.invalidate();
-      utils.recipe.getAllFiltered.invalidate();
-      utils.recipe.getAll.invalidate();
-      utils.recipe.getAllFavorites.invalidate();
+    onSuccess: async () => {
+      try {
+        await Promise.all([
+          utils.recipe.getAllRecipeFavoritedByUser.invalidate(),
+          utils.recipe.getAllFiltered.invalidate(),
+          utils.recipe.getAll.invalidate(),
+          utils.recipe.getAllFavorites.invalidate()
+        ]);
+      } catch (error) {
+        console.error('Failed to invalidate queries:', error);
+      }
     },
   });
 
   const updateRecipe = api.recipe.updateRecipe.useMutation({
-    onSuccess: () => {
-      utils.recipe.getAllRecipeFavoritedByUser.invalidate();
-      utils.recipe.getAllFiltered.invalidate();
-      utils.recipe.getAll.invalidate();
+    onSuccess: async () => {
+      try {
+        await Promise.all([
+          utils.recipe.getAllRecipeFavoritedByUser.invalidate(),
+          utils.recipe.getAllFiltered.invalidate(),
+          utils.recipe.getAll.invalidate()
+        ]);
+      } catch (error) {
+        console.error('Failed to invalidate queries:', error);
+      }
     },
   });
+
+  const handleUpdateRecipe = (data: RecipeFormData) => {
+    if (!data.id) {
+      console.error('Recipe ID is required for updates');
+      return;
+    }
+
+    updateRecipe.mutate({...data, id: data.id});
+  };
 
   const isFavorite = (recipeID: number) => favoriteRecipeIds.includes(recipeID);
 
@@ -155,7 +179,7 @@ export function MyRecipeList({ mylist = false }: { mylist?: boolean }) {
               </Table.Row>
             </Table.Header>
             <Table.Body>
-              {recipes && recipes.map((recipe) => {
+              {recipes?.map((recipe) => {
                 const avgRating = recipe.ratings.length > 0
                   ? (recipe.ratings.reduce((sum, r) => sum + r.score, 0) / recipe.ratings.length).toFixed(1)
                   : '-';
@@ -223,7 +247,7 @@ export function MyRecipeList({ mylist = false }: { mylist?: boolean }) {
                                   <RecipeForm
                                     isEdit={true}
                                     initialData={recipe}
-                                    onSubmit={(data) => updateRecipe.mutate(data)}
+                                    onSubmit={handleUpdateRecipe}
                                   />
                                 </DialogContent>
                               </DialogRoot>

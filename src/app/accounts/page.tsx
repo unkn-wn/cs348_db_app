@@ -1,5 +1,5 @@
 import { CreateAccount, AccountList } from "~/app/_components/account";
-import { api, HydrateClient } from "~/trpc/server";
+import { HydrateClient } from "~/trpc/server";
 
 export default async function Events() {
   // const hello = await api.post.hello({ text: "from tRPC" });

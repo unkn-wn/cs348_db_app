@@ -2,23 +2,24 @@ import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { Prisma } from "@prisma/client";
 
+const baseRecipeSchema = z.object({
+  name: z.string(),
+  description: z.string().nullable(),
+  prepTime: z.number(),
+  cuisineType: z.string().nullable(),
+  ingredients: z.array(
+    z.object({
+      ingredientId: z.number(),
+      quantity: z.number(),
+      unit: z.string(),
+    })
+  ),
+});
+
 export const recipeRouter = createTRPCRouter({
   createRecipe: publicProcedure
-    .input(
-      z.object({
-        name: z.string(),
-        description: z.string().optional(),
-        prepTime: z.number(),
-        cuisineType: z.string().optional(),
-        ingredients: z.array(
-          z.object({
-            ingredientId: z.number(),
-            quantity: z.number(),
-            unit: z.string(),
-          })
-        ),
-      })
-    ).mutation(async ({ ctx, input }) => {
+    .input(baseRecipeSchema)
+    .mutation(async ({ ctx, input }) => {
       // SERIALIZATION ISOLATION LEVEL - makes sure that no other transactions can
       // modify or read when in progress
       return await ctx.db.$transaction(async (tx) => {
@@ -47,22 +48,9 @@ export const recipeRouter = createTRPCRouter({
     }),
 
   updateRecipe: publicProcedure
-    .input(
-      z.object({
-        id: z.number(),
-        name: z.string(),
-        description: z.string().nullable(),
-        prepTime: z.number(),
-        cuisineType: z.string().nullable(),
-        ingredients: z.array(
-          z.object({
-            ingredientId: z.number(),
-            quantity: z.number(),
-            unit: z.string(),
-          })
-        ),
-      })
-    )
+    .input(baseRecipeSchema.extend({
+      id: z.number(),  // Required for updates
+    }))
     .mutation(async ({ ctx, input }) => {
       return await ctx.db.$transaction(async (tx) => {
         // replace all existing ingredients connections by deleting first
@@ -194,11 +182,11 @@ export const recipeRouter = createTRPCRouter({
           (${input.cuisineType === 'all' || !input.cuisineType} OR LOWER(r."cuisineType") = ${input.cuisineType?.toLowerCase()})
         GROUP BY r.id
         HAVING
-          COALESCE(AVG(rt.score), 0) >= ${input.minRating || 0}
+          COALESCE(AVG(rt.score), 0) >= ${input.minRating ?? 0}
         ORDER BY r.id DESC
       `;
 
-      const recipeIds = filteredRecipes.map((r: any) => r.id);
+      const recipeIds = filteredRecipes.map((r: { id: number }) => r.id);
 
       if (recipeIds.length === 0) return [];
 
@@ -320,7 +308,7 @@ export const recipeRouter = createTRPCRouter({
         },
       });
 
-      return user?.favorites.map((recipe) => recipe.id) || [];
+      return user?.favorites.map((recipe) => recipe.id) ?? [];
     }),
 
   unfavoriteRecipe: publicProcedure

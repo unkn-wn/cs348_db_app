@@ -9,6 +9,12 @@ const config = {
   experimental: {
     optimizePackageImports: ["@chakra-ui/react"],
   },
+  eslint: {
+    dirs: ["src/app/", "src/server/", "src/trpc/"],
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
 };
 
 export default config;

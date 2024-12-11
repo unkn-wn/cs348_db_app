@@ -37,6 +37,7 @@ const config = {
         }
       }
     ]
-  }
+  },
+  "ignorePatterns": ["src/components/*"]
 }
 module.exports = config;

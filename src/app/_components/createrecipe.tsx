@@ -3,25 +3,26 @@
 import { api } from "~/trpc/react";
 import { Button } from "~/components/ui/button";
 import {
-  DialogBody,
-  DialogCloseTrigger,
   DialogContent,
-  DialogFooter,
   DialogHeader,
   DialogRoot,
   DialogTitle,
   DialogTrigger,
-  DialogActionTrigger,
 } from "~/components/ui/dialog";
 
 import { RecipeForm } from "./recipeform";
+import { type RecipeFormData } from "./recipeform";
 
 export function CreateRecipe() {
   const utils = api.useUtils();
 
   const createRecipe = api.recipe.createRecipe.useMutation({
     onSuccess: async () => {
-      await utils.recipe.invalidate();
+      try {
+        await utils.recipe.invalidate();
+      } catch (error) {
+        console.error('Failed to invalidate queries:', error);
+      }
     },
   });
 
@@ -36,9 +37,7 @@ export function CreateRecipe() {
         <DialogHeader>
           <DialogTitle className="text-3xl font-bold text-center">Add a New Recipe</DialogTitle>
         </DialogHeader>
-        <RecipeForm
-          onSubmit={(data) => createRecipe.mutate(data)}
-        />
+        <RecipeForm onSubmit={(data: RecipeFormData) => createRecipe.mutate(data)} />
       </DialogContent>
     </DialogRoot>
   );

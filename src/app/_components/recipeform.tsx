@@ -16,6 +16,19 @@ import {
   DialogActionTrigger,
 } from "~/components/ui/dialog";
 
+export interface RecipeFormData {
+  id?: number;
+  name: string;
+  description: string | null;
+  prepTime: number;
+  cuisineType: string | null;
+  ingredients: {
+    ingredientId: number;
+    quantity: number;
+    unit: string;
+  }[];
+}
+
 interface RecipeFormProps {
   isEdit?: boolean;
   initialData?: {
@@ -34,7 +47,7 @@ interface RecipeFormProps {
       unit: string;
     }[];
   };
-  onSubmit: (data: any) => void;
+  onSubmit: (data: RecipeFormData) => void;
 }
 
 export function RecipeForm({ isEdit = false, initialData, onSubmit }: RecipeFormProps) {
@@ -72,8 +85,12 @@ export function RecipeForm({ isEdit = false, initialData, onSubmit }: RecipeForm
 
   const createIngredient = api.recipe.createIngredient.useMutation({
     onSuccess: async () => {
-      await utils.recipe.getAllIngredients.invalidate();
-      setIngredientName("");
+      try {
+        await utils.recipe.getAllIngredients.invalidate();
+        setIngredientName("");
+      } catch (error) {
+        console.error('Failed to invalidate queries:', error);
+      }
     },
   });
 
@@ -89,16 +106,16 @@ export function RecipeForm({ isEdit = false, initialData, onSubmit }: RecipeForm
   const handleSubmit = () => {
     const ingredients = selectedIngredients.map((id) => ({
       ingredientId: id,
-      quantity: quantity[id] || 0,
-      unit: unit[id] || "",
+      quantity: quantity[id] ?? 0,
+      unit: unit[id] ?? "",
     }));
 
-    const formData = {
-      id: initialData?.id,
+    const formData: RecipeFormData = {
+      ...(isEdit && initialData ? { id: initialData.id } : {}),
       name,
-      description,
+      description: description ?? null,
       prepTime,
-      cuisineType,
+      cuisineType: cuisineType ?? null,
       ingredients,
     };
 
@@ -252,14 +269,14 @@ export function RecipeForm({ isEdit = false, initialData, onSubmit }: RecipeForm
                         type="text"
                         placeholder="Quantity"
                         className="border border-gray-300 rounded p-1"
-                        value={quantity[entry.id] || ''}
+                        value={quantity[entry.id] ?? ''}
                         onChange={(e) => setQuantity({ ...quantity, [entry.id]: parseInt(e.target.value) })}
                       />
                       <input
                         type="text"
                         placeholder="Unit"
                         className="border border-gray-300 rounded p-1"
-                        value={unit[entry.id] || ''}
+                        value={unit[entry.id] ?? ''}
                         onChange={(e) => setUnit({ ...unit, [entry.id]: e.target.value })}
                       />
                     </div>

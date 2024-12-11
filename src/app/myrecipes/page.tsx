@@ -1,4 +1,4 @@
-import { api, HydrateClient } from "~/trpc/server";
+import { HydrateClient } from "~/trpc/server";
 
 import { MyRecipeList } from "~/app/_components/myrecipes";
 import { UserID } from "~/app/_components/userid";
