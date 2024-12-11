@@ -36,13 +36,19 @@ export function MyRecipeList({ mylist = false }: { mylist?: boolean }) {
     }
   }, [getUserID.data]);
 
+  // get all unique cuisines using getAll
+  const allRecipes = api.recipe.getAll.useQuery().data;
+  const uniqueCuisines = allRecipes
+    ? Array.from(new Set(allRecipes.map((recipe) => recipe.cuisineType?.toLowerCase())))
+    : [];
+
   // if mylist, get only favorites for the user
   const { data: recipes, isLoading } = mylist
     ? api.recipe.getAllRecipeFavoritedByUser.useQuery({ userID: userID || 0 }, { enabled: !!userID })
     : api.recipe.getAllFiltered.useQuery({
-        cuisineType: cuisineFilter,
-        minRating: ratingFilter
-      });
+      cuisineType: cuisineFilter,
+      minRating: ratingFilter
+    });
 
   // get favorite recipes
   const { data: favoriteRecipeData } = api.recipe.getAllFavorites.useQuery(
@@ -64,6 +70,7 @@ export function MyRecipeList({ mylist = false }: { mylist?: boolean }) {
       // also refetch favorited recipes
       utils.recipe.getAllRecipeFavoritedByUser.invalidate();
       utils.recipe.getAll.invalidate();
+      utils.recipe.getAllFiltered.invalidate();
       utils.recipe.getAllFavorites.invalidate();
     },
   });
@@ -75,6 +82,7 @@ export function MyRecipeList({ mylist = false }: { mylist?: boolean }) {
       // also refetch favorited recipes
       utils.recipe.getAllRecipeFavoritedByUser.invalidate();
       utils.recipe.getAll.invalidate();
+      utils.recipe.getAllFiltered.invalidate();
       utils.recipe.getAllFavorites.invalidate();
     },
   });
@@ -84,6 +92,7 @@ export function MyRecipeList({ mylist = false }: { mylist?: boolean }) {
 
       // refetch again
       utils.recipe.getAllRecipeFavoritedByUser.invalidate();
+      utils.recipe.getAllFiltered.invalidate();
       utils.recipe.getAll.invalidate();
       utils.recipe.getAllFavorites.invalidate();
     },
@@ -92,48 +101,47 @@ export function MyRecipeList({ mylist = false }: { mylist?: boolean }) {
   const updateRecipe = api.recipe.updateRecipe.useMutation({
     onSuccess: () => {
       utils.recipe.getAllRecipeFavoritedByUser.invalidate();
+      utils.recipe.getAllFiltered.invalidate();
       utils.recipe.getAll.invalidate();
     },
   });
 
   const isFavorite = (recipeID: number) => favoriteRecipeIds.includes(recipeID);
 
-  // FILTERING RECIPES
-  const uniqueCuisines = recipes
-    ? Array.from(new Set(recipes.map((recipe) => recipe.cuisineType?.toLowerCase())))
-    : [];
 
   if (isLoading) return <div>Fetching all entries...</div>;
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex gap-4 items-center">
-        <select
-          value={cuisineFilter}
-          onChange={(e) => setCuisineFilter(e.target.value)}
-          className="border border-gray-300 rounded px-2 py-1"
-        >
-          <option value="all">All Cuisines</option>
-          {uniqueCuisines.map((cuisine) => (
-            <option key={cuisine} value={cuisine}>
-              {cuisine}
-            </option>
-          ))}
-        </select>
+      {!mylist && (
+        <div className="flex gap-4 items-center">
+          <select
+            value={cuisineFilter}
+            onChange={(e) => setCuisineFilter(e.target.value)}
+            className="border border-gray-300 rounded px-2 py-1"
+          >
+            <option value="all">All Cuisines</option>
+            {uniqueCuisines.map((cuisine) => (
+              <option key={cuisine} value={cuisine}>
+                {cuisine}
+              </option>
+            ))}
+          </select>
 
-        <select
-          value={ratingFilter}
-          onChange={(e) => setRatingFilter(Number(e.target.value))}
-          className="border border-gray-300 rounded px-2 py-1"
-        >
-          <option value={0}>All Ratings (Avg)</option>
-          <option value={1}>1+</option>
-          <option value={2}>2+</option>
-          <option value={3}>3+</option>
-          <option value={4}>4+</option>
-          <option value={5}>5</option>
-        </select>
-      </div>
+          <select
+            value={ratingFilter}
+            onChange={(e) => setRatingFilter(Number(e.target.value))}
+            className="border border-gray-300 rounded px-2 py-1"
+          >
+            <option value={0}>All Ratings (Avg)</option>
+            <option value={1}>1+</option>
+            <option value={2}>2+</option>
+            <option value={3}>3+</option>
+            <option value={4}>4+</option>
+            <option value={5}>5</option>
+          </select>
+        </div>
+      )}
 
       <div className="overflow-x-auto min-w-full border border-grey-800">
         <DialogRoot size={"md"}>
