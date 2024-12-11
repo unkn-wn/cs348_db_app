@@ -17,7 +17,7 @@ export function UserID() {
 
   return (
     <>
-      <h1 className="text-3xl font-extrabold tracking-tight">My Recipes - User: {userID}</h1>
+      <h1 className="text-3xl font-extrabold tracking-tight">My Saved Recipes - User: {userID}</h1>
     </>
   );
 }

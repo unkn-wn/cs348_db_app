@@ -176,6 +176,67 @@ export const recipeRouter = createTRPCRouter({
       });
     }),
 
+  getAllFiltered: publicProcedure
+    .input(z.object({
+      cuisineType: z.string().optional(),
+      minRating: z.number().optional(),
+    }))
+    .query(async ({ ctx, input }) => {
+      // RAW SQL QUERY - prepared statements
+      // get *, AVG, from recipe join rating on recipeId, where cuisine is all or the inputed cuisinetype
+      // group by recipe id, having avg >= inputed min rating, order by id desc
+      const filteredRecipes: { id: number }[] = await ctx.db.$queryRaw`
+        SELECT
+          DISTINCT r.*
+        FROM "Recipe" r
+        LEFT JOIN "Rating" rt ON r.id = rt."recipeId"
+        WHERE
+          (${input.cuisineType === 'all' || !input.cuisineType} OR LOWER(r."cuisineType") = ${input.cuisineType?.toLowerCase()})
+        GROUP BY r.id
+        HAVING
+          COALESCE(AVG(rt.score), 0) >= ${input.minRating || 0}
+        ORDER BY r.id DESC
+      `;
+
+      const recipeIds = filteredRecipes.map((r: any) => r.id);
+
+      if (recipeIds.length === 0) return [];
+
+      return ctx.db.recipe.findMany({
+        where: {
+          id: { in: recipeIds },
+        },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          prepTime: true,
+          cuisineType: true,
+          ratings: {
+            select: {
+              score: true,
+            },
+          },
+          recipeIngredients: {
+            select: {
+              ingredient: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+              id: true,
+              quantity: true,
+              unit: true,
+            },
+          },
+        },
+        orderBy: {
+          id: "desc",
+        },
+      });
+    }),
+
   delete: publicProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
